@@ -1,0 +1,15 @@
+HTC00000  10000      00000  0000    00 4 -10 56  142  9 1000E ANTT  P
+58340    HERALD CAMP                             23/09/2002  23/09/2002
+GAUGE DATUM LOWEST ASTRONOMICAL TIDE TGBM MSL              2.260M ABOVE GD
+FILE HEIGHTS REFER TO MSL     WHICH IS  0.000M ABOVE GAUGE DATUM
+MODEL: STANDNTF   ANALYSIS BY: ANTT         CONS: C58340.02    NO.CONS: 010
+Z00       2260.0 000.00                 0.00000000
+O1        0408.0 135.00                13.94303560
+P1        0247.0 205.00                14.95893140
+K1        0750.0 205.00                15.04106860
+N2        0137.0 065.00                28.43972950
+M2        0582.0 126.00                28.98410420
+S2        0140.0 292.00                30.00000000
+K2        0037.0 292.00                30.08213730
+M4        0018.0 276.00                57.96820840
+MS4       0021.0 286.00                58.98410420

@@ -1,0 +1,15 @@
+HTC00000  10000      00000  0000    00 4 -24  1  151 45 1000E ANTT  P
+59770    CLEWS POINT                             23/09/2002  23/09/2002
+GAUGE DATUM LOWEST ASTRONOMICAL TIDE TGBM MSL              1.710M ABOVE GD
+FILE HEIGHTS REFER TO MSL     WHICH IS  0.000M ABOVE GAUGE DATUM
+MODEL: STANDNTF   ANALYSIS BY: ANTT         CONS: C59770.02    NO.CONS: 010
+Z00       1710.0 000.00                 0.00000000
+O1        0120.0 110.00                13.94303560
+P1        0070.0 154.00                14.95893140
+K1        0330.0 154.00                15.04106860
+N2        0230.0 227.00                28.43972950
+M2        0950.0 249.00                28.98410420
+S2        0300.0 252.00                30.00000000
+K2        0080.0 252.00                30.08213730
+M4        0010.0 135.00                57.96820840
+MS4       0010.0 195.00                58.98410420

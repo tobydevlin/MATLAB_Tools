@@ -1,0 +1,231 @@
+      SUBROUTINE TRANSP(HD,UG,HS,TP,PHI,D50,D90,WS,RC,RW,DS,A,RNU,RHOW,
+     *                  RHOS,BETA,SSR,SSF,SBF)
+C
+C     COMPUTATION OF CONCENTRATION VERTICALS AND SUSPENDED LOAD TRANSPORT
+C     THROUGH NUMERICAL INTEGRATION AND FORMULAE APPROXIMATION
+C
+      LOGICAL BO
+      DIMENSION RMAT(25,4)
+      CHARACTER KAR*1
+C
+C  READING INPUT FROM SCREEN AND WRITING TO FILE TRANSPOR.OUT
+C
+C
+C  INITIALIZING SOME NUMERICAL AND PHYSICAL PARAMETERS
+C
+      NN     = 12
+      G      = 9.81
+      PI     = 4.*ATAN(1.)
+      DEL=(RHOS-RHOW)/RHOW
+      RKAP=.4
+      DSTER=D50*(DEL*G/RNU**2)**(1./3.)
+C
+C   COMPUTATION OF WAVE LENGTH AND WAVE NUMBER
+C
+      IF(HD.LE.0.) HD=0.
+      IF (TP.GT.0..AND.HS.GT.0.) THEN
+         Y=4.02*HD/TP/TP
+         POL=1.+Y*(.666+Y*(.355+Y*(.161+Y*(.0632+Y*(.0218+.00654*Y)))))
+         WAVENR=SQRT(Y**2+Y/POL)/HD
+         RLS=2.*PI/WAVENR
+         ARG=WAVENR*HD
+        IF (ARG.GT.50.) THEN
+          ABW=0.
+          FW=0.
+          UBW=0.
+        ELSE
+          ABW=HS/(2.*SINH(ARG))
+          FW=EXP(-6.+5.2*(ABW/RW)**(-0.19))
+          IF(FW.GT.0.3 )FW=0.3
+          UBW  = 2.*PI/TP*ABW
+        ENDIF
+      ELSE
+        ABW=0.
+        ABR=0.
+        RLS=0.
+        FW=0.
+        UBW=0.
+      ENDIF
+C
+C  CRITICAL SHEAR STRESS SHIELDS
+C
+      IF(DSTER.LE.4.)THETCR=.24/DSTER
+      IF(4. .LT.DSTER.AND.DSTER.LE.10.)THETCR=.14*DSTER**(-.64)
+      IF(10..LT.DSTER.AND.DSTER.LE.20.)THETCR=.04*DSTER**(-.1 )
+      IF(20..LT.DSTER.AND.DSTER.LE.150.)THETCR=.013*DSTER**(.29 )
+      IF(DSTER.GT.150.)THETCR=.055
+      TAUCR=(RHOS-RHOW)*G*D50*THETCR
+C
+C  COMPUTATION OF REFERENCE CONCENTRATION CA
+C
+      CC=18.*ALOG10(12.*HD/RC)
+      FC=0.24*ALOG10(12.*HD/RC)**(-2)
+	FC1=0.24*ALOG10(12.*HD/3./D90)**(-2)
+      RMUC=FC1/FC
+      RMUW=0.6/DSTER
+      UST=G**0.5*ABS(UG)/CC
+      DELS=0.
+      IF(ABW.GT.0.)THEN
+         DELS=0.216*ABW*(ABW/RW)**(-0.25)
+      ENDIF
+      HULP10=UBW/UG
+      GAMMA=0.
+      IF(HULP10.GE.2.5)HULP10=2.5
+      IF(0.LE.PHI.AND.PHI.LE.180.)THEN
+         GAMMA=.75
+         IF(PHI.GT.90.)GAMMA=GAMMA+(PHI-90.)/90.*.35
+      ENDIF
+      RA=EXP(GAMMA*HULP10)*RC
+      FCA=0.24*ALOG10(12.*HD/RA)**(-2)
+      IF(DELS.LE.RC/10.)THEN
+        ALFAW=1.
+      ELSE
+        ALFAW= (ALOG(30.*DELS/RA)/ALOG(30.*DELS/RC))**2
+      ENDIF
+      TAUC=0.125*RHOW*FCA*UG*UG
+      TAUW=0.25*RHOW*FW*UBW*UBW
+      TAUCEF=RMUC*ALFAW*TAUC
+      TAUWEF=RMUW*TAUW
+      TAUCWE=TAUCEF+TAUWEF
+      THET1=TAUCWE/(RHOS-RHOW)/G/D50
+      T=(THET1-THETCR)/THETCR
+      T=MAX(.0001,T)
+      CA=0.015*D50/A*DSTER**(-.3)*T**1.5
+C
+C NUMERICAL INTEGRATION OF U*C OVER VERTICAL, TO STARTING POINT X=A
+C
+      JTAL= 8
+      NN  = JTAL*NN
+      DYM = CA/NN
+      DXM = HD/NN
+      DYX = DYM/DXM
+      BO  = .FALSE.
+      HULP30=-1.+ALOG(30.*HD/RA)
+      IF(DELS.GT.0.)THEN
+         UDEL=UG*ALOG(30.*DELS/RA)/HULP30
+      ENDIF
+C
+C  COMPUTATION OF DERIVATIVE DC/DY OR DC/DX
+C
+      ABR=MAX(3.*(HS/HD)-.8,1.)
+      EBW=.004*DSTER*ABR*DS*UBW
+      IF (TP.GT.1.E-4) THEN
+        EMAXW=0.035*ABR*HD*HS/TP
+      ELSE
+        EMAXW=0.
+      ENDIF
+      IF(EMAXW.LE.EBW)EMAXW=EBW
+      EMAXC=0.25*RKAP*UST*HD*BETA
+      C=CA
+      Z=A
+      IF(Z.LE.DS)ESW=EBW
+      IF(Z.GT.DS.AND.Z.LE.0.5*HD)ESW=EBW+(EMAXW-EBW)*((Z-DS)/
+     *(0.5*HD-DS))
+      IF(Z.GE.0.5*HD)ESW=EMAXW
+      IF(Z.GE.0.5*HD)ESC=EMAXC
+      IF(Z.LT.0.5*HD)ESC=EMAXC-EMAXC*(1.-2.*Z/HD)**2
+      ES=(ESW**2.+ESC**2.)**0.5
+      fcc=0.
+      IF (C.GT.1.E-8) THEN
+        IF(Z.GE.A)fcc=-WS/ES*C*(1.-C)**5.
+      ENDIF
+      YPRIME=fcc
+      FF = 1./CA*YPRIME
+      IF(DELS.GT.0.)THEN
+         UC=UDEL*ALOG(30.*A/RC)/ALOG(30.*DELS/RC)
+      ENDIF
+      IF(A.GE.DELS)UC=UG*ALOG(30.*A/RA)/HULP30
+C
+C  STORAGE OF RESULTS IN MATRIX RMAT
+C
+      RMAT(1,1)=Z
+      RMAT(1,2)=CA*RHOS
+      RMAT(1,3)=UC
+      RMAT(1,4)=CA*UC*RHOS
+C
+C  FURTHER INTEGRATION
+C
+      Y = CA
+      TERM1=UC*Y
+      XEND=A
+      SS=0.
+      NTEL = 0
+      IT   = 2
+C
+  100 CONTINUE
+      NTEL = NTEL+1
+      XOLD = XEND
+      YOLD = Y
+      IF (-YPRIME .GT. DYX) THEN
+         Y = YOLD-DYM
+         IF (Y .LT. 2./3.*YOLD) Y = 2./3.*YOLD
+         XEND = XOLD+ALOG(Y/YOLD)/FF
+      ELSE
+         XEND = XOLD+DXM
+         IF (XEND .GE. HD) THEN
+            XEND = HD
+            BO = .TRUE.
+         ENDIF
+         Y = EXP(ALOG(YOLD)+(XEND-XOLD)*FF)
+      ENDIF
+      C=Y
+      Z=XEND
+      IF(Z.LE.DS)ESW=EBW
+      IF(Z.GT.DS.AND.Z.LE.0.5*HD)ESW=EBW+(EMAXW-EBW)*((Z-DS)/
+     *(0.5*HD-DS))
+      IF(Z.GE.0.5*HD)ESW=EMAXW
+      IF(Z.GE.0.5*HD)ESC=EMAXC
+      IF(Z.LT.0.5*HD)ESC=EMAXC-EMAXC*(1.-2.*Z/HD)**2
+      ES=(ESW**2.+ESC**2.)**0.5
+      fcc=0.
+      IF (C.GT.1.E-8) THEN
+        IF(Z.GE.A)fcc=-WS/ES*C*(1.-C)**5.
+      ENDIF
+      YPRIME=fcc
+      FF = 1./Y*YPRIME
+      IF(DELS.GT.0.)THEN
+         UC=UDEL*ALOG(30.*XEND/RC)/ALOG(30.*DELS/RC)
+      ENDIF
+      IF(XEND.GE.DELS)UC=UG*ALOG(30.*XEND/RA)/HULP30
+      TERM2=UC*Y
+      SS=SS+(XEND-XOLD)*(TERM1+TERM2)/2.
+      TERM1=TERM2
+C
+C  STORAGE OF RESULTS IN MATRIX RMAT
+C
+      IF (NTEL .EQ. NN/JTAL.OR.BO) THEN
+         RMAT(IT,1)=Z
+         RMAT(IT,2)=Y*RHOS
+         RMAT(IT,3)=UC
+         RMAT(IT,4)=TERM2*RHOS
+         IT = IT+1
+         NTEL      = 0
+      ENDIF
+      IF (.NOT. BO) GOTO 100
+C
+C  TRANSPORT ACCORDING TO FORMULA
+C
+      AA=7.
+      IF(HD/DS.LE.100.)AA=.7*SQRT(HD/DS)
+      ZW=0.
+      FAKTW=0.
+      IF(TP.GT.0..AND.HS.GT.0.)THEN
+         ZW=AA*(WS/UG)**.9*(UG*TP/HS)**1.05
+         ZW=MIN(ZW,25.)
+         RES3=(A/HD)**ZW-(A/HD)**1.2
+         RES4=(1.-A/HD)**ZW*(1.2-ZW)
+         FAKTW=RES3/RES4
+      ENDIF
+      ZC=WS/RKAP/BETA/UST
+      ZC=MIN(ZC,25.)
+      RES1=(A/HD)**ZC-(A/HD)**1.2
+      RES2=(1.-A/HD)**ZC*(1.2-ZC)
+      FAKTC=RES1/RES2
+      USTER1=SQRT(TAUCEF/RHOW)
+      SSF=(FAKTC+FAKTW)*UG*HD*CA*RHOS
+      SBF=0.25*D50*USTER1*T**1.5/DSTER**0.3*RHOS
+      SSR= SS*RHOS
+C
+  300 CONTINUE
+      RETURN
+      END SUBROUTINE

@@ -1,0 +1,116 @@
+#include <fintrf.h>
+C
+C TRANSPORG.FOR - Gateway function for TRANSPOR.FOR
+C
+      SUBROUTINE MEXFUNCTION(NLHS, PLHS, NRHS, PRHS)
+C-----------------------------------------------------------------------
+C
+      IMPLICIT NONE
+      mwPointer::PLHS(*), PRHS(*)
+      mwSize::NLHS, NRHS
+      mwPointer::MXCREATEDOUBLEMATRIX, MXGETPR
+      mwPointer::MXGETM, MXGETN
+      mwPointer::SSR, SSF, SBF
+      mwPointer::HD, UG, HS, TP, PHI
+      mwPointer::PAR
+C
+      REAL(8),ALLOCATABLE::SSR1(:), SSF1(:), SBF1(:)
+      REAL(8),ALLOCATABLE::HD1(:), UG1(:), HS1(:), TP1(:), PHI1(:)
+      REAL(8)::PAR1(11)
+C
+      REAL(4),ALLOCATABLE::SSR2(:), SSF2(:), SBF2(:)
+      REAL(4),ALLOCATABLE::HD2(:), UG2(:), HS2(:), TP2(:), PHI2(:)
+      REAL(4)::PAR2(11)
+C
+      mwSize::M, N, SIZE, MM, NN, I
+C
+C CHECK FOR PROPER NUMBER OF ARGUMENTS
+C
+      IF (NRHS .NE. 6) THEN
+        CALL MEXERRMSGTXT('TRANSPOR requires 6 input arguments')
+      ELSEIF (NLHS .GT. 3) THEN
+        CALL MEXERRMSGTXT('TRANSPOR requires 3 output argument')
+      ENDIF
+C
+C CHECK INPUT ARGUMENT DIMENSIONS
+C
+      M = MXGETM(PRHS(1))
+      N = MXGETN(PRHS(1))
+      SIZE = M*N
+      DO I = 2,5
+        MM = MXGETM(PRHS(I))
+        NN = MXGETN(PRHS(I))
+        IF (MM*NN .NE. SIZE) THEN
+          IF (I .EQ. 2) THEN
+            CALL MEXERRMSGTXT('TRANSPOR requires size(UG)=size(HD)')
+          ELSEIF (I .EQ. 3) THEN
+            CALL MEXERRMSGTXT('TRANSPOR requires size(HS)=size(HD)')
+          ELSEIF (I .EQ. 4) THEN
+            CALL MEXERRMSGTXT('TRANSPOR requires size(HS)=size(TP)')
+          ELSEIF (I .EQ. 5) THEN
+            CALL MEXERRMSGTXT('TRANSPOR requires size(HS)=size(PHI)')
+          ENDIF
+        ENDIF
+      ENDDO
+      MM = MXGETM(PRHS(6))
+      NN = MXGETN(PRHS(6))
+      IF (MM*NN .NE. 11) THEN
+       CALL MEXERRMSGTXT('TRANSPOR requires 11 scalar input parameters')
+      ENDIF
+C
+C ALLOCATE DYNAMIC ARRAY SIZES
+C
+      ALLOCATE(SSR1(Size),SSF1(Size),SBF1(Size))
+      ALLOCATE(HD1(Size),UG1(Size),HS1(Size),TP1(Size),PHI1(Size))
+C
+      ALLOCATE(SSR2(Size),SSF2(Size),SBF2(Size))
+      ALLOCATE(HD2(Size),UG2(Size),HS2(Size),TP2(Size),PHI2(Size))
+
+C
+C CREATE A MATRIX FOR RETURN ARGUMENT
+C
+      PLHS(1) = MXCREATEDOUBLEMATRIX(M,N,0)
+      PLHS(2) = MXCREATEDOUBLEMATRIX(M,N,0)
+      PLHS(3) = MXCREATEDOUBLEMATRIX(M,N,0)
+C
+C ASSIGN POINTERS TO THE VARIOUS PARAMETERS
+C
+      SSR = MXGETPR(PLHS(1))
+      SSF = MXGETPR(PLHS(2))
+      SBF = MXGETPR(PLHS(3))
+C
+      HD = MXGETPR(PRHS(1))
+      UG = MXGETPR(PRHS(2))
+      HS = MXGETPR(PRHS(3))
+      TP = MXGETPR(PRHS(4))
+      PHI = MXGETPR(PRHS(5))
+      PAR = MXGETPR(PRHS(6))
+C
+C COPY RIGHT HAND ARGUMENTS TO LOCAL ARRAYS OR VARIABLES
+C
+      CALL MXCOPYPTRTOREAL8(HD, HD1, Size); HD2 = REAL(HD1)
+      CALL MXCOPYPTRTOREAL8(UG, UG1, Size); UG2 = REAL(UG1)
+      CALL MXCOPYPTRTOREAL8(HS, HS1, Size); HS2 = REAL(HS1)
+      CALL MXCOPYPTRTOREAL8(TP, TP1, Size); TP2 = REAL(TP1)
+      CALL MXCOPYPTRTOREAL8(PHI, PHI1, Size); PHI2 = REAL(PHI1)
+      CALL MXCOPYPTRTOREAL8(PAR, PAR1, 11); PAR2 = REAL(PAR1)
+	DEALLOCATE(HD1,UG1,HS1,TP1,PHI1)
+C
+C CALL TRANSPOR
+C
+      DO I = 1,Size
+       CALL TRANSP(HD2(I),UG2(I),HS2(I),TP2(I),PHI2(I),
+     *    PAR2(1),PAR2(2),PAR2(3),PAR2(4),PAR2(5),PAR2(6),PAR2(7),
+     *    PAR2(8),PAR2(9),PAR2(10),PAR2(11),
+     *    SSR2(I),SSF2(I),SBF2(I))
+      ENDDO
+	DEALLOCATE(HD2,UG2,HS2,TP2,PHI2)
+C
+C COPY OUTPUT WHICH IS STORED IN LOCAL ARRAY TO MATRIX OUTPUT
+      SSR1 = DBLE(SSR2); CALL MXCOPYREAL8TOPTR(SSR1, SSR, Size)
+      SSF1 = DBLE(SSF2); CALL MXCOPYREAL8TOPTR(SSF1, SSF, Size)
+      SBF1 = DBLE(SBF2); CALL MXCOPYREAL8TOPTR(SBF1, SBF, Size)
+	DEALLOCATE(SSR1, SSF1, SBF1, SSR2, SSF2, SBF2)
+C
+      RETURN
+      END
